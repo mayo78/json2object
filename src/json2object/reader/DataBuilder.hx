@@ -142,7 +142,7 @@ class DataBuilder {
 		var e = if (Context.defined("cs")) {
 			// Reduced version doesn't work on C#, using manual copy of the loop
 			macro value = {
-				var parser = new $cls(errors, putils, THROW);
+				var parser = new $cls(errors, putils, THROW, ignoreUnknownVariables);
 				cast [
 					for (j in a)
 						try { parser.loadJson(j, variable); }
@@ -156,7 +156,7 @@ class DataBuilder {
 				];
 			}
 		} else {
-			macro value = cast loadJsonArrayValue(a, new $cls(errors, putils, THROW).loadJson, variable);
+			macro value = cast loadJsonArrayValue(a, new $cls(errors, putils, THROW, ignoreUnknownVariables).loadJson, variable);
 		}
 
 		changeFunction("loadJsonArray", parser, e);
@@ -168,7 +168,7 @@ class DataBuilder {
 		var list = {name:"List", pack:[#if (haxe_ver >= 4)"haxe", "ds"#end], params:[TPType(subType.toComplexType())]};
 
 		var e = macro value = {
-			var parser = new $cls(errors, putils, THROW);
+			var parser = new $cls(errors, putils, THROW, ignoreUnknownVariables);
 			var res = new $list();
 			for (j in a) {
 				try {
@@ -347,7 +347,7 @@ class DataBuilder {
 					assignedKeys.push(macro $v{field.name});
 					assignedValues.push(macro $v{field.meta.has(":optional")});
 
-					var reader:Expr = macro new $f_cls(errors, putils, OBJECTTHROW).loadJson;
+					var reader:Expr = macro new $f_cls(errors, putils, OBJECTTHROW, ignoreUnknownVariables).loadJson;
 					var hasCustomParser = field.meta.has(jcustom);
 					if (hasCustomParser){
 						try {
@@ -435,7 +435,7 @@ class DataBuilder {
 			}
 		}
 
-		var default_e = macro errors.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
+		var default_e = macro if (!this.ignoreUnknownVariables) errors.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
 		var loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
 		if (isAnon) {
@@ -491,7 +491,7 @@ class DataBuilder {
 			case TInst(_.get()=>t, _):
 				if (t.module == "String") {
 					macro try {
-						new $k_cls(errors, putils, THROW).loadJson({value:JString(field.name), pos:putils.revert(pos)}, variable);
+						new $k_cls(errors, putils, THROW, ignoreUnknownVariables).loadJson({value:JString(field.name), pos:putils.revert(pos)}, variable);
 					} catch (e:json2object.Error.InternalError) {
 						if (e != ParsingThrow) {
 							throw e;
@@ -506,7 +506,7 @@ class DataBuilder {
 			case TAbstract(_.get()=>t, _):
 				if (t.module == "StdTypes" && t.name == "Int") {
 					macro try {
-						new $k_cls(errors, putils, THROW).loadJson({value:JNumber(field.name), pos:putils.revert(pos)}, variable);
+						new $k_cls(errors, putils, THROW, ignoreUnknownVariables).loadJson({value:JNumber(field.name), pos:putils.revert(pos)}, variable);
 					} catch (e:json2object.Error.InternalError) {
 						if (e != ParsingThrow) {
 							throw e;
@@ -524,7 +524,7 @@ class DataBuilder {
 		var v_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(value.toComplexType())]};
 		var valueMacro = macro {
 			try {
-				new $v_cls(errors, putils, THROW).loadJson(field.value, field.name);
+				new $v_cls(errors, putils, THROW, ignoreUnknownVariables).loadJson(field.value, field.name);
 			}
 			catch (e:json2object.Error.InternalError) {
 				if (e != ParsingThrow) {
@@ -601,7 +601,7 @@ class DataBuilder {
 								blockExpr.push({expr: EVars([{name: arg_name, type:at.toComplexType(), expr:null}]), pos:Context.currentPos()});
 
 								var a_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(at.toComplexType())]};
-								var v = macro $i{arg_name} = new $a_cls(errors, putils, THROW).loadJson(s0.filter(function (o) { return o.name == _names[$v{argCount}];})[0].value, field.name+"."+$v{a.name});
+								var v = macro $i{arg_name} = new $a_cls(errors, putils, THROW, ignoreUnknownVariables).loadJson(s0.filter(function (o) { return o.name == _names[$v{argCount}];})[0].value, field.name+"."+$v{a.name});
 								blockExpr.push(v);
 								argCount++;
 							}
@@ -764,7 +764,7 @@ class DataBuilder {
 									changeFunction("loadJsonString",
 										parser,
 										macro {
-											value = new $cls(errors, putils, NONE).loadJson(
+											value = new $cls(errors, putils, NONE, ignoreUnknownVariables).loadJson(
 											{value:JString(s), pos:putils.revert(pos)},
 												variable);
 											});
@@ -794,7 +794,7 @@ class DataBuilder {
 									changeFunction("loadJsonArray",
 										parser,
 										macro {
-											value = new $cls(errors, putils, NONE).loadJson(
+											value = new $cls(errors, putils, NONE, ignoreUnknownVariables).loadJson(
 											{value:JArray(a), pos:putils.revert(pos)},
 												variable);
 											});
@@ -819,7 +819,7 @@ class DataBuilder {
 											// hxcpp can't directly use the cast
 											var abstractType = type.toComplexType();
 											macro {
-												var __tmp__new = new $cls(errors, putils, NONE).loadJson(
+												var __tmp__new = new $cls(errors, putils, NONE, ignoreUnknownVariables).loadJson(
 													{value:JObject(o), pos:putils.revert(pos)},
 													variable);
 												cast ((cpp.Pointer.addressOf(__tmp__new).reinterpret() : cpp.Pointer<$abstractType>).value);
@@ -831,7 +831,7 @@ class DataBuilder {
 										}
 										else
 										{
-											macro cast new $cls(errors, putils, NONE).loadJson(
+											macro cast new $cls(errors, putils, NONE, ignoreUnknownVariables).loadJson(
 											{value:JObject(o), pos:putils.revert(pos)},
 											variable);
 										}
@@ -855,7 +855,7 @@ class DataBuilder {
 												changeFunction("loadJsonNumber",
 													parser,
 													macro {
-														value = new $cls(errors, putils, NONE).loadJson(
+														value = new $cls(errors, putils, NONE, ignoreUnknownVariables).loadJson(
 														{value:JNumber(f), pos:putils.revert(pos)},
 															variable);
 														});
@@ -870,7 +870,7 @@ class DataBuilder {
 											changeFunction("loadJsonNumber",
 												parser,
 												macro {
-													value = new $cls(errors, putils, NONE).loadJson(
+													value = new $cls(errors, putils, NONE, ignoreUnknownVariables).loadJson(
 													{value:JNumber(f), pos:putils.revert(pos)},
 														variable);
 													});
@@ -885,7 +885,7 @@ class DataBuilder {
 											changeFunction("loadJsonBool",
 												parser,
 												macro {
-													value = new $cls(errors, putils, NONE).loadJson(
+													value = new $cls(errors, putils, NONE, ignoreUnknownVariables).loadJson(
 													{value:JBool(b), pos:putils.revert(pos)},
 														variable);
 													});
@@ -911,7 +911,7 @@ class DataBuilder {
 							if (i == 0) {
 								var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromTypeT.toComplexType())]};
 									changeFunction("loadJsonObject", parser, macro {
-										value = cast new $cls(errors, putils, NONE).loadJson(
+										value = cast new $cls(errors, putils, NONE, ignoreUnknownVariables).loadJson(
 											{value:JObject(o), pos:putils.revert(pos)},
 											variable);
 									});
@@ -958,8 +958,8 @@ class DataBuilder {
 		var parserName = c.name + "_" + (counter++);
 		var parent = {name:"BaseParser", pack:["json2object", "reader"], params:[TPType(base.toComplexType())]};
 		var parser = macro class $parserName extends $parent {
-			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PositionUtils=null, ?errorType:json2object.Error.ErrorType=json2object.Error.ErrorType.NONE) {
-				super(errors, putils, errorType);
+			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PositionUtils=null, ?errorType:json2object.Error.ErrorType=json2object.Error.ErrorType.NONE, ?ignoreUnknownVariables:Bool=false) {
+				super(errors, putils, errorType, ignoreUnknownVariables);
 				${defaultValueExpr}
 			}
 
