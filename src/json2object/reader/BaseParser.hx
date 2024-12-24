@@ -41,10 +41,13 @@ class BaseParser<T> {
 
 	private var putils:PositionUtils;
 
-	private function new(errors:Array<Error>, putils:PositionUtils, errorType:ErrorType) {
+	public var ignoreUnknownVariables:Bool = false;
+
+	private function new(errors:Array<Error>, putils:PositionUtils, errorType:ErrorType, ?ignoreUnknownVariables:Bool = false) {
 		this.errors = errors;
 		this.putils = putils;
 		this.errorType = errorType;
+		this.ignoreUnknownVariables = ignoreUnknownVariables;
 	}
 
 	public function fromJson(jsonString:String, filename:String="") : T {
