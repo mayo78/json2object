@@ -954,11 +954,18 @@ class DataBuilder {
 			default: macro {};
 		}
 
-		if (counter == 0) {
-			counter = Std.parseInt(sys.io.File.getContent('_counter.txt'));
-			counter++;
-			sys.io.File.saveContent('_counter.txt', '$counter');
-		}
+		// since this is just a hack fix for projects that use hmm and such i just lazily hid this file there so you dont have to add it to .gitignore
+		final counterPath = './.haxelib/__counter.txt';
+		var contents = '0';
+		if (sys.FileSystem.exists(counterPath))
+			contents = sys.io.File.getContent(counterPath);
+		if (!Math.isNaN(Std.parseInt(contents)))
+			counter = Std.parseInt(contents);
+		counter++;
+		final file = sys.io.File.write(counterPath, false);
+		file.writeString('$counter');
+		file.close();
+
 		var parserName = c.name + "_" + (counter++);
 		var parent = {name:"BaseParser", pack:["json2object", "reader"], params:[TPType(base.toComplexType())]};
 		var parser = macro class $parserName extends $parent {
