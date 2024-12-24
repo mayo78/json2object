@@ -40,7 +40,6 @@ typedef ParserInfo = {packs:Array<String>, clsName:String}
 
 class DataBuilder {
 
-	@:persistent
 	private static var counter = 0;
 	private static var parsers = new Map<String, Type>();
 	private static var callPosition:Null<Position> = null;
@@ -955,6 +954,11 @@ class DataBuilder {
 			default: macro {};
 		}
 
+		if (counter == 0) {
+			counter = Std.parseInt(sys.io.File.getContent('_counter.txt'));
+			counter++;
+			sys.io.File.saveContent('_counter.txt', '$counter');
+		}
 		var parserName = c.name + "_" + (counter++);
 		var parent = {name:"BaseParser", pack:["json2object", "reader"], params:[TPType(base.toComplexType())]};
 		var parser = macro class $parserName extends $parent {
